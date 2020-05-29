@@ -19,6 +19,7 @@ class GraphDbModel:
 
     @staticmethod
     def _create_and_return_tweet(tx, tweets):
+        print(tweets)
         result = tx.run("UNWIND $tweets as tweet "
                         "MERGE (t:tweet {id:tweet.id}) "
                         "MERGE (u:user {id:tweet.userId}) "
@@ -27,11 +28,17 @@ class GraphDbModel:
                         "MERGE (u)-[:at]->(l) "
                         "MERGE (u)-[:send]->(t) "
                         "MERGE (t)-[:tag]->(p) "
-                        "FOREACH (val IN tweet.hashtags | MERGE (h:hashtag) on create SET h.id=val MERGE (t)-[:tag]->(h))"
-                        "FOREACH (val IN tweet.urls | MERGE (url:url) on create SET url.id=val MERGE (t)-[:include]->(url))"
-                        "FOREACH (val IN tweet.medias | MERGE (m:media) on create SET  m.id=val MERGE (t)-[:has]->(m))"
-                        "FOREACH (val IN tweet.user_mentions | MERGE (u1:user)  on create SET u1.id=val MERGE (t)-[:mention]->(u1)) "
-                        "RETURN 'User: '+ u.id + ' sent '+ 'tweet: '+ t.id ", tweets=tweets)
+                        "WITH tweet.hashtags AS nested,t,u,tweet unwind nested as val merge (t)-[:tag]->(h:hashtag{text:val}) "
+                        "WITH tweet.urls AS nested,t,u,tweet unwind nested as val merge (t)-[:include]->(url:url{url:val}) "
+                        "WITH tweet.symbols AS nested,t,u,tweet unwind nested as val merge (t)-[:has]->(s:symbol{text:val})"
+                        "WITH tweet.user_mentions AS nested,t,u,tweet unwind nested as val merge (t)-[:mention]->(u1:user{id:val}) "
+
+                        # "FOREACH (val IN tweet.hashtags | MERGE (h:hashtag) on create SET h.text=val MERGE (t)-[:tag]->(h)) "
+                        # "FOREACH (val IN tweet.urls | MERGE (url:url) on create SET url.url=val MERGE (t)-[:include]->(url)) "
+                        # "FOREACH (val IN tweet.symbols | MERGE (s:symbol) on create SET  s.text=val MERGE (t)-[:has]->(s)) "
+                        # "FOREACH (val IN tweet.user_mentions | MERGE (u1:user)  on create SET u1.id=val MERGE (t)-[:mention]->(u1)) "
+                        "RETURN 'User: '+ u.id + ' sent '+ 'tweet: '+ tweet ", tweets=tweets)
+        # print(tweets[0]['hashtags'])
         return result
 
 
