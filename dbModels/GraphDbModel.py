@@ -28,17 +28,32 @@ class GraphDbModel:
                         "MERGE (u)-[:at]->(l) "
                         "MERGE (u)-[:send]->(t) "
                         "MERGE (t)-[:tag]->(p) "
-                        "WITH tweet.hashtags AS nested,t,u,tweet unwind nested as val merge (t)-[:tag]->(h:hashtag{text:val}) "
-                        "WITH tweet.urls AS nested,t,u,tweet unwind nested as val merge (t)-[:include]->(url:url{url:val}) "
-                        "WITH tweet.symbols AS nested,t,u,tweet unwind nested as val merge (t)-[:has]->(s:symbol{text:val})"
-                        "WITH tweet.user_mentions AS nested,t,u,tweet unwind nested as val merge (t)-[:mention]->(u1:user{id:val}) "
+                        # "WITH tweet.hashtags AS nested,t,u,tweet unwind nested as val merge (t)-[:tag]->(h:hashtag{text:val}) "
+                        # "WITH tweet.urls AS nested,t,u,tweet unwind nested as val merge (t)-[:include]->(url:url{url:val}) "
+                        # "WITH tweet.symbols AS nested,t,u,tweet unwind nested as val merge (t)-[:has]->(s:symbol{text:val})"
+                        # "WITH tweet.user_mentions AS nested,t,u,tweet unwind nested as val merge (t)-[:mention]->(u1:user{id:val}) "
+                        , tweets=tweets)
 
-                        # "FOREACH (val IN tweet.hashtags | MERGE (h:hashtag) on create SET h.text=val MERGE (t)-[:tag]->(h)) "
-                        # "FOREACH (val IN tweet.urls | MERGE (url:url) on create SET url.url=val MERGE (t)-[:include]->(url)) "
-                        # "FOREACH (val IN tweet.symbols | MERGE (s:symbol) on create SET  s.text=val MERGE (t)-[:has]->(s)) "
-                        # "FOREACH (val IN tweet.user_mentions | MERGE (u1:user)  on create SET u1.id=val MERGE (t)-[:mention]->(u1)) "
-                        "RETURN 'User: '+ u.id + ' sent '+ 'tweet: '+ tweet ", tweets=tweets)
-        # print(tweets[0]['hashtags'])
+        tx.run("UNWIND $tweets as tweet "
+               "MERGE (t:tweet {id:tweet.id}) "
+               "WITH t, tweet unwind tweet.hashtags as hash MERGE (h:hashtag {text:hash}) "
+               "MERGE (t) -[:tag]->(h)", tweets=tweets)
+
+        tx.run("UNWIND $tweets as tweet "
+               "MERGE (t:tweet {id:tweet.id}) "
+               "WITH t, tweet unwind tweet.user_mentions as val MERGE (u:user {id:val}) "
+               "MERGE (t) -[:mention]->(u)", tweets=tweets)
+
+        tx.run("UNWIND $tweets as tweet "
+               "MERGE (t:tweet {id:tweet.id}) "
+               "WITH t, tweet unwind tweet.urls as val MERGE (url:url {url:val}) "
+               "MERGE (t) -[:include]->(url)", tweets=tweets)
+
+        tx.run("UNWIND $tweets as tweet "
+               "MERGE (t:tweet {id:tweet.id}) "
+               "WITH t, tweet unwind tweet.symbols as val MERGE (s:symbol {text:val}) "
+               "MERGE (t) -[:has]->(s)", tweets=tweets)
+
         return result
 
 
