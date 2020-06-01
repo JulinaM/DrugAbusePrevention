@@ -4,23 +4,28 @@ from neo4j import GraphDatabase
 class GraphDbModel:
 
     def __init__(self, uri, user, password, verbose=0):
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
-        self.verbose = verbose
+        try:
+            self.driver = GraphDatabase.driver(uri, auth=(user, password))
+            self.verbose = verbose
+
+        except Exception as e:
+            print(str(e))
 
     def close(self):
         self.driver.close()
 
     def insert(self, tweets):
         with self.driver.session() as session:
-            message = session.write_transaction(self._create_and_return_tweet, tweets)
-            if self.verbose == 1:
-                print(message)
-                # print(tweets)
+            for tweet in tweets:
+                message = session.write_transaction(self._create_and_return_tweet, tweet)
+                if self.verbose == 1:
+                    print(message)
+                    # print(tweets)
 
     @staticmethod
-    def _create_and_return_tweet(tx, tweets):
-        print(tweets)
-        result = tx.run("UNWIND $tweets as tweet "
+    def _create_and_return_tweet(tx, tweet):
+        print(tweet)
+        result = tx.run("WITH $tw as tweet "
                         "MERGE (t:tweet {id:tweet.id}) "
                         "MERGE (u:user {id:tweet.userId}) "
                         "MERGE (l:location {id:tweet.locationId}) "
@@ -32,27 +37,27 @@ class GraphDbModel:
                         # "WITH tweet.urls AS nested,t,u,tweet unwind nested as val merge (t)-[:include]->(url:url{url:val}) "
                         # "WITH tweet.symbols AS nested,t,u,tweet unwind nested as val merge (t)-[:has]->(s:symbol{text:val})"
                         # "WITH tweet.user_mentions AS nested,t,u,tweet unwind nested as val merge (t)-[:mention]->(u1:user{id:val}) "
-                        , tweets=tweets)
+                        , tw=tweet)
 
-        tx.run("UNWIND $tweets as tweet "
+        tx.run("WITH $tw  as tweet "
                "MERGE (t:tweet {id:tweet.id}) "
                "WITH t, tweet unwind tweet.hashtags as hash MERGE (h:hashtag {text:hash}) "
-               "MERGE (t) -[:tag]->(h)", tweets=tweets)
+               "MERGE (t) -[:tag]->(h)", tw=tweet)
 
-        tx.run("UNWIND $tweets as tweet "
+        tx.run("WITH $tw  as tweet "
                "MERGE (t:tweet {id:tweet.id}) "
                "WITH t, tweet unwind tweet.user_mentions as val MERGE (u:user {id:val}) "
-               "MERGE (t) -[:mention]->(u)", tweets=tweets)
+               "MERGE (t) -[:mention]->(u)", tw=tweet)
 
-        tx.run("UNWIND $tweets as tweet "
+        tx.run("WITH $tw  as tweet "
                "MERGE (t:tweet {id:tweet.id}) "
                "WITH t, tweet unwind tweet.urls as val MERGE (url:url {url:val}) "
-               "MERGE (t) -[:include]->(url)", tweets=tweets)
+               "MERGE (t) -[:include]->(url)", tw=tweet)
 
-        tx.run("UNWIND $tweets as tweet "
+        tx.run("WITH $tw  as tweet "
                "MERGE (t:tweet {id:tweet.id}) "
                "WITH t, tweet unwind tweet.symbols as val MERGE (s:symbol {text:val}) "
-               "MERGE (t) -[:has]->(s)", tweets=tweets)
+               "MERGE (t) -[:has]->(s)", tw=tweet)
 
         return result
 
