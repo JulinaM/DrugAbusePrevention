@@ -2,6 +2,7 @@ import json
 
 from TweetParser import TweetParser
 from dbModels.GraphDbModel import GraphDbModel
+from dbModels.GraphDbService import GraphDbService
 from dbModels.MongoDbModel import MongoDbModel
 
 
@@ -15,9 +16,10 @@ def main():
     parser = TweetParser(file)
     parser.extract_large_tweets(1)
 
-    graphModel = GraphDbModel("bolt://localhost:7687", "neo4j", "test", 1)
+    graphDbService = GraphDbService("bolt://localhost:7687", "neo4j", "test", 1)
+    graphModel = GraphDbModel(graphDbService.driver, 1)
     graphModel.insert(parser.tweets)
-    graphModel.close()
+    graphDbService.close()
 
     mongoDbModel = MongoDbModel('mongodb://localhost:27017/', 'Twitter')
     mongo_data = parser.data_package
