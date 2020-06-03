@@ -4,6 +4,7 @@ from TweetParser import TweetParser
 from dbModels.GraphDbModel import GraphDbModel
 from dbModels.GraphDbService import GraphDbService
 from dbModels.MongoDbModel import MongoDbModel
+from dbModels.MongoDbService import MongoDbService
 
 
 def main():
@@ -21,7 +22,8 @@ def main():
     graphModel.insert(parser.tweets)
     graphDbService.close()
 
-    mongoDbModel = MongoDbModel('mongodb://localhost:27017/', 'Twitter')
+    mongoDbService = MongoDbService('mongodb://localhost:27017/')
+    mongoDbModel = MongoDbModel(mongoDbService.client, 'Twitter', 1)
     mongo_data = parser.data_package
     for each_data in mongo_data:
         json_data = json.loads(each_data)
@@ -29,7 +31,7 @@ def main():
             value = json_data[tableName]
             if len(value) != 0:
                 mongoDbModel.insert(value['id'], value['data'], tableName)
-    mongoDbModel.close()
+    mongoDbService.close()
 
 
 if __name__ == '__main__':
