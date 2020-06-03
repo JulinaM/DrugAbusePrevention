@@ -20,6 +20,9 @@ class GraphDbModel:
     def getListOfUsers(self, hashtag=''):
         with self.driver.session() as session:
             result = session.read_transaction(_fetchResult, hashtag)
+            if self.verbose == 1:
+                for record in result:
+                    print(record["user"])
             return [record["user"] for record in result]
 
     def count(self, labelName):
@@ -84,7 +87,7 @@ if __name__ == "__main__":
     graphDbService = GraphDbService("bolt://localhost:7687", "neo4j", "test", 1)
     graphModel = GraphDbModel(graphDbService.driver, 1)
     cql = "MATCH (u:user)-[:send]-(t:tweet)-[:tag]-(h:hashtag) where h.text=~'(?i)goodfel.*' return u.id, t.id"
-    # users = graphModel.getListOfUsers()
-    # print(users)
-    graphModel.count('tweet')
+    users = graphModel.getListOfUsers()
+    print(users)
+    # graphModel.count('tweet')
     graphDbService.close()
