@@ -1,28 +1,14 @@
-from pymongo import MongoClient
-
-
-class TweetStore:
-    collections = ['tweet', 'user', 'place', 'hashtags', 'symbol', 'url']
-    index_map = {'tweet': ['id'],
-                 'user': ['id', 'screen_name'],
-                 'place': ['id', 'name'],
-                 # 'hashtags': []
-                 }
+from dbModels.MongoDbService import MongoDbService
 
 
 class MongoDbModel:
 
-    def __init__(self, uri, database, verbose=0):
+    def __init__(self, mongoClient, database, verbose=0):
         try:
-            self.client = MongoClient('localhost', 27017)
-            self.db = self.client[database]
+            self.db = mongoClient[database]
             self.verbose = verbose
         except Exception as e:
             print(str(e))
-
-    def create_index(self):
-        for table in TweetStore.collections:
-            self.db[table].createIndex({"_id": 1})
 
     # Insert json array [{data1}, {data2}]
     def insert(self, id, data, tableName):
@@ -50,9 +36,23 @@ class MongoDbModel:
             print('\n All data from EmployeeData Database \n')
             for emp in col:
                 print(emp)
-
         except Exception as e:
             print(str(e))
 
-    def close(self):
-        self.client.close()
+    def find_from_list(self, tableName, fieldName, valueList):
+        try:
+            results = self.db[tableName].find({fieldName: {"$in": valueList}})
+            if self.verbose == 1:
+                for record in results:
+                    print(record)
+            return results
+        except Exception as e:
+            print(str(e))
+
+
+if __name__ == "__main__":
+    mongoDbService = MongoDbService('mongodb://localhost:27017/')
+    userIds = ["488427368", "26131727", "25642054", "25642054", "25642054", "25642054", "25642054"]
+    mongoDbModel = MongoDbModel(mongoDbService.client, 'Twitter', 1)
+    mongoDbModel.find_from_list("user", "id_str", userIds)
+    mongoDbService.close()
