@@ -1,5 +1,3 @@
-from neo4j import unit_of_work
-
 from dbModels.GraphDbService import GraphDbService
 
 
@@ -17,18 +15,19 @@ class GraphDbModel:
                     print(message)
                     # print(tweets)
 
-    def getListOfUsers(self, hashtag=''):
+    def getResultsWithHashtag(self, hashtag=''):
         with self.driver.session() as session:
             result = session.read_transaction(_fetchResult, hashtag)
-            if self.verbose == 1:
-                for record in result:
-                    print(record["user"])
-            return [record["user"] for record in result]
+            return {
+                'users': [record['user'] for record in result],
+                'tweets': [record['tweet'] for record in result]
+            }
 
-    def count(self, labelName):
+    def getCount(self, labelName):
         with self.driver.session() as session:
             result = session.read_transaction(_count, labelName)
-            print("count:", result)
+            if self.verbose == 1:
+                print(labelName, " count:", result)
             return result
 
 
@@ -74,20 +73,25 @@ def _create_and_return_tweet(tx, tweet):
 
 def _fetchResult(tx, keyword):
     return list(
-        tx.run("MATCH (u:user)-[:send]-(t:tweet)-[:tag]-(h:hashtag) where h.text=~'(?i)goodfel.*' return u.id as user",
-               keyword=keyword))
+        tx.run(
+            "MATCH (u:user)-[:send]-(t:tweet)-[:tag]-(h:hashtag) where h.text=~'(?i)goodfel.*' return u.id as user, t.id as tweet",
+            keyword=keyword))
 
 
-@unit_of_work(timeout=25.0)
-def _count(tx):
-    return tx.run("MATCH (t:tweet) RETURN count(t)").single().value()
+def _count(tx, labelName):
+    CQL = 'MATCH (t:user) RETURN count(t)'
+    if labelName == 'tweet':
+        CQL = 'MATCH (t:tweet) RETURN count(t)'
+    if labelName == 'hashtag':
+        CQL = 'MATCH (t:hashtag) RETURN count(t)'
+
+    return tx.run(CQL).single().value()
 
 
 if __name__ == "__main__":
     graphDbService = GraphDbService("bolt://localhost:7687", "neo4j", "test", 1)
     graphModel = GraphDbModel(graphDbService.driver, 1)
-    cql = "MATCH (u:user)-[:send]-(t:tweet)-[:tag]-(h:hashtag) where h.text=~'(?i)goodfel.*' return u.id, t.id"
-    users = graphModel.getListOfUsers()
-    print(users)
-    # graphModel.count('tweet')
+    results = graphModel.getResultsWithHashtag('')
+    print(results)
+    graphModel.getCount('tweet')
     graphDbService.close()
