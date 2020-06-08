@@ -1,6 +1,8 @@
 import copy
 import json
 
+import geojson
+
 
 def make_data(json_obj):
     tweet_map = {'tweet': _process_tweet(json_obj), 'user': _process_user(json_obj), 'place': _process_place(json_obj)}
@@ -33,6 +35,20 @@ def _process_tweet(json_obj):
 
 def _process_place(json_obj):
     data = json_obj['place']
+    try:
+        if data['bounding_box']['type'] == 'Polygon':
+            polygon = geojson.Polygon(data['bounding_box']['coordinates'])
+        if not polygon.is_valid and polygon.errors() == 'Each linear ring must end where it started':
+            for index in range(len(polygon['coordinates'])):
+                polygon['coordinates'][index].append(polygon['coordinates'][index][0])
+            if polygon.is_valid:
+                data['bounding_box'] = polygon
+            else:
+                print('Invalid Polygon Error', polygon.errors())
+
+    except Exception as e:
+        print(str(e))
+
     placeId = data['id']
     place = {'id': placeId, 'data': data}
     return place

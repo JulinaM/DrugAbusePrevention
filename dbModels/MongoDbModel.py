@@ -18,7 +18,7 @@ class MongoDbModel:
         try:
             collection = self.db[tableName]
             # if len(data) != 0:
-            ids = collection.insert(data).inserted_ids
+            ids = collection.insert(data)
             if self.verbose == 1:
                 print('Inserted {} in table {} \t res: {}'.format(data, tableName, ids))
             return ids
