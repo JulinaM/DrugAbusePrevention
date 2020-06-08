@@ -10,6 +10,9 @@ class MongoDbModel:
         except Exception as e:
             print(str(e))
 
+    def create_geoIndex(self, tableName, locationFiled):
+        self.db[tableName].createIndex({locationFiled: "2dsphere"})
+
     # Insert json array [{data1}, {data2}]
     def insert(self, id, data, tableName):
         try:
@@ -23,16 +26,11 @@ class MongoDbModel:
         except Exception as e:
             print(str(e))
 
-    def update(self, id, data, tableName):
+    def find(self, tableName, query=None):
+        if query is None:
+            query = {}
         try:
-            collection = self.db[tableName]
-            collection.update_one({'id': id}, data, upsert=True)
-        except Exception as e:
-            print(str(e))
-
-    def select(self, tableName):
-        try:
-            col = self.db[tableName].find()
+            col = self.db[tableName].find(query)
             print('\n All data from EmployeeData Database \n')
             for emp in col:
                 print(emp)
@@ -40,12 +38,15 @@ class MongoDbModel:
             print(str(e))
 
     def find_from_list(self, tableName, fieldName, valueList):
+        query = {fieldName: {"$in": valueList}}
+        return self.find(tableName, query)
+
+    def update(self, tableName, fieldName, fieldValue, data):
+        filter_query = {fieldName: fieldValue}
+        replaceBy = {"$set": data}
         try:
-            results = self.db[tableName].find({fieldName: {"$in": valueList}})
-            if self.verbose == 1:
-                for record in results:
-                    print(record)
-            return results
+            collection = self.db[tableName]
+            collection.update_one(filter_query, replaceBy)
         except Exception as e:
             print(str(e))
 

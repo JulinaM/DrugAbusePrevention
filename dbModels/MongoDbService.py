@@ -16,9 +16,5 @@ class MongoDbService:
         except Exception as e:
             print(str(e))
 
-    def create_index(self):
-        for table in COLLECTIONS:
-            self.db[table].createIndex({"_id": 1})
-
     def close(self):
         self.client.close()
