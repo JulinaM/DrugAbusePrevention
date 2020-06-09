@@ -1,3 +1,4 @@
+from dbModels import MongoDbQueryBuilder
 from dbModels.MongoDbService import MongoDbService
 
 
@@ -26,14 +27,15 @@ class MongoDbModel:
         except Exception as e:
             print(str(e))
 
-    def find(self, tableName, query=None):
+    def find(self, tableName, query=None, limit=10):
         if query is None:
             query = {}
         try:
-            col = self.db[tableName].find(query)
-            print('\n All data from EmployeeData Database \n')
-            for emp in col:
-                print(emp)
+            res = self.db[tableName].find(query).limit(limit)
+            if self.verbose == 1:
+                for emp in res:
+                    print('--- ', emp)
+            return res
         except Exception as e:
             print(str(e))
 
@@ -54,6 +56,9 @@ class MongoDbModel:
 if __name__ == "__main__":
     mongoDbService = MongoDbService('mongodb://localhost:27017/')
     userIds = ["488427368", "26131727", "25642054", "25642054", "25642054", "25642054", "25642054"]
-    mongoDbModel = MongoDbModel(mongoDbService.client, 'Twitter', 1)
+    mongoDbModel = MongoDbModel(mongoDbService.client, 'Twitter_test', 1)
     mongoDbModel.find_from_list("user", "id_str", userIds)
+
+    query = MongoDbQueryBuilder.GeoSpatialQueryBuilder.build_circleQuery(-74.02667, 40.68393, 100)
+    result = mongoDbModel.find('place', query, 2)
     mongoDbService.close()
