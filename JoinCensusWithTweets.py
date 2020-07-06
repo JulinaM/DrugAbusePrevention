@@ -18,10 +18,9 @@ from shapely.geometry import Point
 # from pattern.en import lemma
 from timezonefinderL import TimezoneFinder
 
-from geo_loc_utils import get_state_fips_list
+from geo_loc_utils import get_state_fips_list, replace_sp_tokens, get_tokens
 from twokenize import normalizeTextForTagger
 from utils import GraphDbUtils, MongoDbUtils
-from utils.CensusUtils import get_state_fips_list, replace_sp_tokens, get_tokens
 
 time_format = "%a %b %d %H:%M:%S %z %Y"
 time_format_db = "%Y-%m-%d %H:%M:%S"
@@ -32,6 +31,11 @@ time_format_db = "%Y-%m-%d %H:%M:%S"
 # stopwords.add('%URL%')
 # stopwords.add('%USER_MENTION%')
 # stopwords.add('%QUOTES%')
+
+
+def join_census_shpfile(all_gdf, census_df):
+    pop_gdf = all_gdf.merge(census_df, on='GEOID')
+    return pop_gdf
 
 
 class GeoShape:
@@ -97,9 +101,10 @@ class CensusLoader:
         state_fips_list = get_state_fips_list()
         census_df_list = []
         total_cts = 0
-        for s in state_fips_list:
-            census_data = pd.read_csv(census_home_path + census_filename.format(s),
-                                      usecols=['GEOID', 'POP100'], dtype={'GEOID': str, 'POP100': float})
+        for s in ['01']:
+            print('----', census_home_path + census_filename.format(s))
+            census_data = pd.read_csv(census_home_path + census_filename.format(s), sep=',')
+            # usecols=['GEOID', 'POP100'], dtype={'GEOID': str, 'POP100': float})
             census_df_list.append(census_data)
             total_cts += census_data.shape[0]
         print('{} states census data are loaded, {} census tracts'.format(len(census_df_list), total_cts))

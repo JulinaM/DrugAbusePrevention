@@ -1,20 +1,18 @@
-# from sqlalchemy import create_engine
-#
-#
-# def insert_DF_to_SQL(dataFrame, tableName, verbose=0):
-#     connectionString = "mysql+pymysql://{user}:{pw}@localhost/{db}".format(user="root", pw="password", db="census")
-#     engine = create_engine(connectionString)
-#     dbConnection = engine.connect()
-#     try:
-#         dataFrame.to_sql(tableName, dbConnection, if_exists='append', chunksize=1000)
-#     except ValueError as vx:
-#         print(vx)
-#     except Exception as ex:
-#         print(ex)
-#     else:
-#         print("Table %s created successfully." % tableName);
-#     finally:
-#         dbConnection.close()
+def store_df_sql(df, tableName):
+    from sqlalchemy import create_engine
+    connectionString = "mysql+pymysql://{user}:{pw}@localhost/{db}".format(user="root", pw="password", db="census2020")
+    engine = create_engine(connectionString)
+    con = engine.connect()
+    try:
+        df.to_sql(tableName, con, if_exists='append', chunksize=1000)
+    except ValueError as vx:
+        print(vx)
+    except Exception as ex:
+        print(ex)
+    else:
+        print("Table %s created successfully." % tableName);
+    finally:
+        con.close()
 
 
 class MySQLModel:

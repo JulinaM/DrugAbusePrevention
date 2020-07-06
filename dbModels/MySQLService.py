@@ -1,12 +1,12 @@
 import mysql.connector
 from mysql.connector import errorcode
 
-DB_NAME = 'Census'
+DB_NAME = 'Census2020'
 
 TABLES = {}
 
 TABLES['census_2010'] = (
-    "CREATE TABLE `censsus` ("
+    "CREATE TABLE `census` ("
     "  `geoId` varchar(55) NOT NULL,"
     "  `SUMLEV` varchar(55) NOT NULL,"
     "  `STATE` varchar(55) NOT NULL,"
@@ -20,10 +20,11 @@ TABLES['census_2010'] = (
 
 class MySQLService:
 
-    def __init__(self, host, user, passowrd):
+    def __init__(self, host, user, passowrd, db=DB_NAME):
         try:
-            self.connection = mysql.connector.connect(user=user, password=passowrd, host=host)
-            self.create_database(self.connection.cursor())
+            self.connection = mysql.connector.connect(user=user, password=passowrd, host=host, db=db,
+                                                      auth_plugin='mysql_native_password')
+            # self.create_database(self.connection.cursor())
             # self.create_table(self.connection.cursor())
 
         except Exception as e:

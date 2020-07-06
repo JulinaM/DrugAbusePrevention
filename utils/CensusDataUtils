@@ -1,0 +1,23 @@
+import pandas as pd
+
+from dbModels.MySQLModel import store_df_sql
+
+
+def get_metadata_df():
+    filePath = '../data/census2020/metadata/2018_DataProductList.xlsx'
+    dfs = pd.read_excel(f"{filePath}", sheet_name=None, index_col=0, header=None)
+    # xl_file = pd.ExcelFile(f"{filePath}")
+    # dfs = {sheet_name: xl_file.parse(sheet_name) for sheet_name in xl_file.sheet_names}
+    df = dfs['Data Product List']
+    return df
+
+
+def readCensusData(filePath):
+    census_data = pd.read_csv(filePath, sep=',')
+
+
+if __name__ == "__main__":
+    df = get_metadata_df()
+    # mysqlService = MySQLService('localhost', 'root', 'password', 'census2020')
+    # mySQLModel = MySQLModel(mysqlService.connection, 1)
+    store_df_sql(df, 'Census_Meta_data')
