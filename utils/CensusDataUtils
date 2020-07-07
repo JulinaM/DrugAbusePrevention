@@ -1,11 +1,40 @@
+from glob import glob
+
 import pandas as pd
 
 from dbModels.MySQLModel import store_df_sql
 
+tableMap = {
+    'B01001': 'Sex By Age',
+    'B01002': 'Median Age by Sex',
+    'B01003': 'Total Population',
+    'B02001': 'Race',
+}
+Years = ['2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
 
-def load():
+
+def load(verbose=0):
     df = get_metadata_df()
     store_df_sql(df, 'Census_Metadata')
+    for tableId, tableTitle in tableMap.items():
+        # pop_table = df.loc[df['Table ID'] == tableId]
+        # tableTitle = pop_table.iat[0, 2]
+        if verbose == 1:
+            print('\n TABLE: ', tableTitle)
+        li = []
+        for year in Years:
+            filepath = '../data/census2020/{}-{}/'.format(tableId, tableTitle)
+            filename = 'ACSDT1Y{}.{}_data_with_overlays_2020-07-07*.csv'.format(year, tableId)
+
+            if verbose == 1:
+                print('Loading ... \n ', f"{filepath}{filename}")
+            for f in glob(f"{filepath}{filename}"):
+                data = pd.read_csv(f)
+                data['Year'] = year
+                li.append(data)
+        frame = pd.concat(li, axis=0, ignore_index=True)
+        print(frame.shape)
+        store_df_sql(frame, tableTitle)
 
 
 def get_metadata_df():
@@ -23,5 +52,4 @@ def readCensusData(filePath):
 
 
 if __name__ == "__main__":
-    df = get_metadata_df()
-    store_df_sql(df, 'Census_Meta_data')
+    load(1)
