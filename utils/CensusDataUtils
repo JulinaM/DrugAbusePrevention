@@ -26,14 +26,24 @@ def load(verbose=0):
             filepath = '../data/census2020/{}-{}/'.format(tableId, tableTitle)
             filename = 'ACSDT1Y{}.{}_data_with_overlays_2020-07-07*.csv'.format(year, tableId)
 
+            meta_filename = 'ACSDT1Y{}.{}_metadata_2020-07-07*.csv'.format(year, tableId)
             if verbose == 1:
-                print('Loading ... \n ', f"{filepath}{filename}")
+                print('\n{} \nLoading Metadata {}'.format(year, f"{filepath}{meta_filename}"), )
+            for f in glob(f"{filepath}{meta_filename}"):
+                columns = pd.read_csv(f, usecols=[1], header=None)
+                cols = columns.iloc[:, 0].tolist()
+                cols = [x.strip(' ') for x in cols]
+            if verbose == 1:
+                print('Columns for {} --> {}'.format(year, cols))
+
+            if verbose == 1:
+                print('Loading  {}'.format(f"{filepath}{filename}"))
             for f in glob(f"{filepath}{filename}"):
-                data = pd.read_csv(f)
+                data = pd.read_csv(f, header=None)
+                data = data.iloc[2:, :]
                 data['Year'] = year
                 li.append(data)
         frame = pd.concat(li, axis=0, ignore_index=True)
-        print(frame.shape)
         store_df_sql(frame, tableTitle)
 
 
