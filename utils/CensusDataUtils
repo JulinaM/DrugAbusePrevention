@@ -57,12 +57,34 @@ def get_table_df(tableId, tableTitle, cook_book_df, verbose=0):
             data['Year'] = year
             li.append(data)
     frame = pd.concat(li, axis=0, ignore_index=True)
+    new_header = cook_book_df[cook_book_df.iloc[:, 0].isin(header)]
+    new_header_list = new_header.iloc[:, 2].values.flatten().tolist()
+    if verbose == 1:
+        assert_code_book_cols(header, new_header_list, cook_book_df)
+
     header.append('Year')
+    new_header_list.append('Year')
 
     if verbose == 1:
+        print('New Header {}'.format(new_header_list))
         print('Header {}'.format(header))
-    frame.columns = header
+
+    frame.columns = new_header_list
     return frame
+
+
+def assert_code_book_cols(old, new, code_book_df):
+    print('SIZE\t  Old: {} & New {} \t Asert :  {} \t'.format(len(old), len(new), len(old) == len(new)))
+    for i in range(len(old)):
+        try:
+            row = code_book_df.loc[code_book_df.loc[:, 0] == old[i]]
+            o = old[i]
+            n = row.loc[:, 2].values[0]
+            print('Old : {} and New : {} \t Assert : {}'.format(o, n, new[i] == n))
+            assert (new[i] == n)
+        except Exception as e:
+            print('-----> ', row.loc[:, 2])
+            print(e)
 
 
 def get_code_book_df(verbose=0):
@@ -75,7 +97,9 @@ def get_code_book_df(verbose=0):
         dfs = dfs.iloc[:, 0:3]
         li.append(dfs)
     frame = pd.concat(li, axis=0, ignore_index=True)
-    frame = frame.drop_duplicates(keep=False, ignore_index=True)
+    frame = frame.drop_duplicates(ignore_index=True)
+    frame.dropna()
+    # print(frame.loc[frame.loc[:, 0] == 'NAME'])
     return frame
 
 
