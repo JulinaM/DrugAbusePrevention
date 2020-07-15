@@ -14,51 +14,69 @@ Years = ['2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
 
 
 def load(verbose=0):
-    df = get_metadata_df()
-    store_df_sql(df, 'Census_Metadata')
+    meta_data_df = get_metadata_df()
+    store_df_sql(meta_data_df, 'CensusMetadata')
+
+    cook_book_df = get_code_book_df()
+    store_df_sql(cook_book_df, 'CodeBook')
+
     for tableId, tableTitle in tableMap.items():
-        # pop_table = df.loc[df['Table ID'] == tableId]
-        # tableTitle = pop_table.iat[0, 2]
-        if verbose == 1:
-            print('\n TABLE: ', tableTitle)
-        li = []
-        for year in Years:
-            filepath = '../data/census2020/{}-{}/'.format(tableId, tableTitle)
-            filename = 'ACSDT1Y{}.{}_data_with_overlays_2020-07-07*.csv'.format(year, tableId)
-
-            meta_filename = 'ACSDT1Y{}.{}_metadata_2020-07-07*.csv'.format(year, tableId)
-            if verbose == 1:
-                print('\n{} \nLoading Metadata {}'.format(year, f"{filepath}{meta_filename}"), )
-            for f in glob(f"{filepath}{meta_filename}"):
-                columns = pd.read_csv(f, usecols=[1], header=None)
-                cols = columns.iloc[:, 0].tolist()
-                cols = [x.strip(' ') for x in cols]
-            if verbose == 1:
-                print('Columns for {} --> {}'.format(year, cols))
-
-            if verbose == 1:
-                print('Loading  {}'.format(f"{filepath}{filename}"))
-            for f in glob(f"{filepath}{filename}"):
-                data = pd.read_csv(f, header=None)
-                data = data.iloc[2:, :]
-                data['Year'] = year
-                li.append(data)
-        frame = pd.concat(li, axis=0, ignore_index=True)
+        frame = get_table_df(tableId, tableTitle, cook_book_df, verbose)
         store_df_sql(frame, tableTitle)
 
 
-def get_metadata_df():
+def get_metadata_df(verbose=0):
     filePath = '../data/census2020/metadata/2018_DataProductList.xlsx'
+    if verbose == 1:
+        print('Loading {}'.format(filePath))
     # dfs = pd.read_excel(f"{filePath}", sheet_name=None, index_col=0, header=None)
     xl_file = pd.ExcelFile(f"{filePath}")
     dfs = {sheet_name: xl_file.parse(sheet_name) for sheet_name in xl_file.sheet_names}
     df = dfs['Data Product List']
-    # print('----> ', df.columns)
     return df
 
 
-def readCensusData(filePath):
-    census_data = pd.read_csv(filePath, sep=',')
+def get_table_df(tableId, tableTitle, cook_book_df, verbose=0):
+    # pop_table = df.loc[df['Table ID'] == tableId]
+    # tableTitle = pop_table.iat[0, 2]
+    if verbose == 1:
+        print('\n TABLE: ', tableTitle)
+    li = []
+    header = []
+    for year in Years:
+        filepath = '../data/census2020/{}-{}/'.format(tableId, tableTitle)
+        filename = 'ACSDT1Y{}.{}_data_with_overlays_2020-07-07*.csv'.format(year, tableId)
+
+        if verbose == 1:
+            print('Loading  {}'.format(f"{filepath}{filename}"))
+        for f in glob(f"{filepath}{filename}"):
+            data = pd.read_csv(f, header=None)
+            header = data.iloc[0].values.flatten().tolist()
+            header = [x.strip(' ') for x in header]
+            data = data.iloc[2:, :]
+            data['Year'] = year
+            li.append(data)
+    frame = pd.concat(li, axis=0, ignore_index=True)
+    header.append('Year')
+
+    if verbose == 1:
+        print('Header {}'.format(header))
+    frame.columns = header
+    return frame
+
+
+def get_code_book_df(verbose=0):
+    filePath = '../data/census2020/codebook/CodeBook.*.xlsx'
+    li = []
+    for f in glob(f"{filePath}"):
+        if verbose == 1:
+            print('Loading {}'.format(f))
+        dfs = pd.read_excel(f, sheet_name='Sheet1', index_col=None, header=None, na_values=['NA'])
+        dfs = dfs.iloc[:, 0:3]
+        li.append(dfs)
+    frame = pd.concat(li, axis=0, ignore_index=True)
+    frame = frame.drop_duplicates(keep=False, ignore_index=True)
+    return frame
 
 
 if __name__ == "__main__":
