@@ -7,8 +7,8 @@ def store_df_sql(df, tableName):
     engine = create_engine(connectionString)
     con = engine.connect()
     try:
-        dtype_dict = get_sql_col(df)
-        df.to_sql(tableName, con, if_exists='append', index=False, dtype=dtype_dict, chunksize=1000)
+        # dtype_dict = get_sql_col(df)
+        df.to_sql(tableName, con, if_exists='append', index=False, chunksize=100)
     except ValueError as vx:
         print(vx)
     except Exception as ex:
