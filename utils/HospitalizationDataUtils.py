@@ -15,12 +15,27 @@ def load(verbose):
     ny_df = load_ny_data(verbose)
     store_df_sql(ny_df, 'NY_Hospitalization')
 
+    ohio_dfs = load_ohio_data(verbose)
+    store_df_sql(ohio_dfs, 'OH_Hospitalization')
+
+
+def load_ohio_data(verbose=0):
+    filePath = '../data/hospitalization_data/Ohio ED Visit Suspected Drug Overdose by County.xlsx'
+    if verbose == 1:
+        print('Loading {}'.format(filePath))
+    df = pd.read_excel(filePath, sheet_name='Quarterly', index_col=None, skiprows=[0])
+    df.rename(columns={df.columns[0]: "Location"}, inplace=True)
+    if verbose == 1:
+        print(df)
+    return df
+
 
 def load_ny_data(verbose=0):
     filePath = '../data/hospitalization_data/Aggergrated-NY-Hospitalization.xlsx'
     if verbose == 1:
         print('Loading {}'.format(filePath))
     dfs = pd.read_excel(filePath, sheet_name='Corrected Data', header=None, index_col=None)
+    dfs = dfs.iloc[:, :-1]
     mux = pd.MultiIndex.from_arrays(dfs.ffill(1).values[:2, 1:], names=['col1', 'col2'])
     dfs = pd.DataFrame(dfs.values[2:, 1:], dfs.values[2:, 0], mux)
     dfs = dfs.reset_index()
