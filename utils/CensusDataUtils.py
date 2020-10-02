@@ -1,3 +1,5 @@
+from glob import glob
+
 import pandas as pd
 
 tableMap = {
@@ -18,7 +20,7 @@ tableMap = {
 Years = ['2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
 
 
-class CensusDataUtilss:
+class CensusDataUtils:
     def __init__(self, mysqlClient, verbose=0):
         try:
             self.verbose = verbose

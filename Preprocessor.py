@@ -1,5 +1,4 @@
 from dbModels.MySQLModel import MySQLModel
-from dbModels.MySQLService import MySQLService
 from utils.HospitalizationDataUtils import HospitalizationDataUtils
 
 
@@ -29,8 +28,8 @@ def main():
 
     #
     # pop_census_gdf = parser.extract_census_data()
-    mySQLService = MySQLService('localhost', 'root', 'password')
-    mySQLModel = MySQLModel(mySQLService.connection)
+    # mySQLService = MySQLService('localhost', 'root', 'password')
+    mySQLModel = MySQLModel(None)
     # mySQLModel.insert(pop_census_gdf, 'census2010')
     # mySQLService.close()
 
@@ -38,8 +37,9 @@ def main():
     hospitalizationUtils.load()
 
     # from utils.CensusDataUtils import CensusDataUtilss
-    # censusDataUtils = CensusDataUtils(mySQLModel, 1)
-    # censusDataUtils.load()
+    from utils.CensusDataUtils import CensusDataUtils
+    censusDataUtils = CensusDataUtils(mySQLModel, 1)
+    censusDataUtils.load()
 
 
 if __name__ == '__main__':
