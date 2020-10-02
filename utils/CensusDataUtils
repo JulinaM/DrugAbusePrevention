@@ -1,41 +1,45 @@
-from glob import glob
-
 import pandas as pd
-
-from dbModels.MySQLModel import store_df_sql
 
 tableMap = {
     'B01001': 'Sex By Age',  # too large
     'B01002': 'Median Age by Sex',
     'B01003': 'Total Population',
     'B02001': 'Race',
-    # 'B11005': 'HOUSEHOLDS BY PRESENCE OF PEOPLE UNDER 18 YEARS BY HOUSEHOLD TYPE', #identifier , col name too large
-    # 'B17001': 'POVERTY STATUS IN THE PAST 12 MONTHS BY SEX BY AGE', #too large  #identifier , col name too large
+    'B11005': 'HOUSEHOLDS BY PRESENCE OF PEOPLE UNDER 18 YEARS BY HOUSEHOLD TYPE',  # identifier , col name too large
+    'B17001': 'POVERTY STATUS IN THE PAST 12 MONTHS BY SEX BY AGE',  # too large  #identifier , col name too large
     'B18101': 'SEX BY AGE BY DISABILITY STATUS',
     'B19001': 'HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2018 INFLATION-ADJUSTED DOLLARS)',
     'B19013': 'MEDIAN HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2018 INFLATION-ADJUSTED DOLLARS) (WHITE ALONE HOUSEHOLDER)',
     'B19083': 'GINI INDEX OF INCOME INEQUALITY',
     'B27001': 'HEALTH INSURANCE COVERAGE STATUS BY SEX BY AGE',  # TO0 LARGE DATA
-    # 'B28005': 'AGE BY PRESENCE OF A COMPUTER AND TYPES OF INTERNET SUBSCRIPTION IN HOUSEHOLD', #has data from 2013
+    'B28005': 'AGE BY PRESENCE OF A COMPUTER AND TYPES OF INTERNET SUBSCRIPTION IN HOUSEHOLD',  # has data from 2013
     # 'S1903': 'MEDIAN INCOME IN THE PAST 12 MONTHS (IN 2018 INFLATION-ADJUSTED DOLLARS)' # internal files has diff starting name like ACSST1
 }
 Years = ['2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
 
 
-def load(verbose=0):
-    meta_data_df = get_metadata_df()
-    store_df_sql(meta_data_df, 'CensusMetadata')
+class CensusDataUtilss:
+    def __init__(self, mysqlClient, verbose=0):
+        try:
+            self.verbose = verbose
+            self.mysqlClient = mysqlClient
+        except Exception as e:
+            print(str(e))
 
-    cook_book_df = get_code_book_df()
-    store_df_sql(cook_book_df, 'CodeBook')
+    def load(self):
+        meta_data_df = _get_metadata_df()
+        self.mysqlClient.store_df_sql(meta_data_df, 'CensusMetadata')
+        #
+        cook_book_df = _get_code_book_df()
+        self.mysqlClient.store_df_sql(cook_book_df, 'CodeBook')
 
-    for tableId, tableTitle in tableMap.items():
-        frame = get_table_df(tableId, tableTitle, cook_book_df, verbose)
-        store_df_sql(frame, tableId)
+        for tableId, tableTitle in tableMap.items():
+            frame = _get_table_df(tableId, tableTitle, cook_book_df, self.verbose)
+            self.mysqlClient.store_df_sql(frame, tableId)
 
 
-def get_metadata_df(verbose=0):
-    filePath = '../data/census2020/metadata/2018_DataProductList.xlsx'
+def _get_metadata_df(verbose=0):
+    filePath = './data/census2020/metadata/2018_DataProductList.xlsx'
     if verbose == 1:
         print('Loading {}'.format(filePath))
     # dfs = pd.read_excel(f"{filePath}", sheet_name=None, index_col=0, header=None)
@@ -45,15 +49,15 @@ def get_metadata_df(verbose=0):
     return df
 
 
-def get_table_df(tableId, tableTitle, cook_book_df, verbose=0):
+def _get_table_df(tableId, tableTitle, cook_book_df, verbose=0):
     # pop_table = df.loc[df['Table ID'] == tableId]
     # tableTitle = pop_table.iat[0, 2]
     if verbose == 1:
-        print('\n TABLE: ', tableTitle)
+        print('\nTABLE {}: {} '.format(tableId, tableTitle))
     li = []
     header = []
     for year in Years:
-        filepath = '../data/census2020/{}-{}/'.format(tableId, tableTitle)
+        filepath = './data/census2020/{}-{}/'.format(tableId, tableTitle)
         filename = '*{}.{}_data_with_overlays_*.csv'.format(year, tableId)
         # if verbose == 1:
         #     print('Loading  {}'.format(f"{filepath}{filename}"))
@@ -67,23 +71,23 @@ def get_table_df(tableId, tableTitle, cook_book_df, verbose=0):
             data['Year'] = year
             li.append(data)
     frame = pd.concat(li, axis=0, ignore_index=True)
-    new_header = cook_book_df[cook_book_df.iloc[:, 0].isin(header)]
-    new_header_list = new_header.iloc[:, 2].values.flatten().tolist()
-    if verbose == 1:
-        assert_code_book_cols(header, new_header_list, cook_book_df)
+    # new_header = cook_book_df[cook_book_df.iloc[:, 0].isin(header)]
+    # new_header_list = new_header.iloc[:, 2].values.flatten().tolist()
+    # if verbose == 1:
+    #     assert_code_book_cols(header, new_header_list, cook_book_df)
 
     header.append('Year')
-    new_header_list.append('Year')
+    # new_header_list.append('Year')
 
-    if verbose == 1:
-        print('New Header {}'.format(new_header_list))
-        print('Header {}'.format(header))
+    # if verbose == 1:
+    #     print('New Header {}'.format(new_header_list))
+    #     print('Header {}'.format(header))
 
-    frame.columns = new_header_list
+    frame.columns = header
     return frame
 
 
-def assert_code_book_cols(old, new, code_book_df):
+def _assert_code_book_cols(old, new, code_book_df):
     print(old)
     print(new)
     print('SIZE\t  Old: {} & New {} \t Asert :  {} \t'.format(len(old), len(new), len(old) == len(new)))
@@ -101,8 +105,8 @@ def assert_code_book_cols(old, new, code_book_df):
             raise Exception('ColumnName not found in code_book for \'{}\''.format(o))
 
 
-def get_code_book_df(verbose=0):
-    filePath = '../data/census2020/codebook/CodeBook.*.xlsx'
+def _get_code_book_df(verbose=0):
+    filePath = './data/census2020/codebook/CodeBook.*.xlsx'
     li = []
     for f in glob(f"{filePath}"):
         if verbose == 1:
@@ -120,7 +124,3 @@ def get_code_book_df(verbose=0):
     # print(frame.loc[frame.loc[:, 0] == 'NAME'])
     frame.columns = ['CodeName', 'Description', 'ColumnName']
     return frame
-
-
-if __name__ == "__main__":
-    load(1)

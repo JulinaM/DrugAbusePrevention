@@ -1,6 +1,6 @@
 import json
 
-from JoinCensusWithTweets import GeoShape, CensusLoader, Integrator
+from JoinCensusWithTweets import CensusLoader, Integrator
 # Parse json file
 from utils import MongoDbUtils, GraphDbUtils
 
@@ -10,7 +10,7 @@ class BaseParser:
     def __init__(self, json_filename, verbose=0):
         self.filename = json_filename
         self.verbose = verbose
-        self.all_gdf, self.main_crs = GeoShape.load_shape_files()
+        # self.all_gdf, self.main_crs = GeoShape.load_shape_files()
 
     def extract_tweets(self):
         tweets = []
